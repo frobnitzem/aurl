@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "aurl"
+version = "0.1.0"
+description = ""
+authors = ["David M. Rogers <predictivestatmech@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://code.ornl.gov/99R/aurl"
+classifiers = [
+    "Development Status :: 3 - Alpha"
+]
+
+[tool.poetry.scripts]
+get   = 'aurl.get:app'
+subst = 'aurl.subst:app'
+
+[tool.poetry.dependencies]
+python = "^3.9"
+aiohttp = "^3.8.5"
+typer = "^0.9.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
