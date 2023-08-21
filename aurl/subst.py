@@ -17,11 +17,11 @@ from .fetch import fetch_all, arun
 
 app = typer.Typer()
 
-@app.command()
+@app.command(help="Fetch and substitute URLs into a template.")
 def run(fname : str = typer.Argument(..., help="File name to substitute."),
         results : bool = typer.Option(False, "--results", help="list required results"),
         v     : bool = typer.Option(False, "-v", help="show info-level logs"),
-        vv    : bool = typer.Option(False, "-vv", help="show debug-level logs")
+        vv    : bool = typer.Option(False, "-vv", help="show debug-level logs"),
        ):
     if vv:
         logging.basicConfig(level=logging.DEBUG)
