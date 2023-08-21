@@ -3,9 +3,9 @@ name = "aurl"
 version = "0.1.0"
 description = ""
 authors = ["David M. Rogers <predictivestatmech@gmail.com>"]
-license = "MIT"
+license = "BSD3"
 readme = "README.md"
-repository = "https://code.ornl.gov/99R/aurl"
+repository = "https://github.com/frobnitzem/aurl"
 classifiers = [
     "Development Status :: 3 - Alpha"
 ]

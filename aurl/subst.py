@@ -3,7 +3,7 @@
 
 __author__ = "David M. Rogers"
 __copyright__ = "UT-Battelle LLC"
-__license__ = "MIT"
+__license__ = "BSD3"
 
 from pathlib import Path
 import logging

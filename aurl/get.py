@@ -1,3 +1,10 @@
+"""Get a list of URLs.
+"""
+
+__author__ = "David M. Rogers"
+__copyright__ = "UT-Battelle LLC"
+__license__ = "BSD3"
+
 from typing import List
 from pathlib import Path
 
