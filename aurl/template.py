@@ -4,12 +4,12 @@ Defines template strings and files for URL substitution.
 See subst.py for code that performs the actual
 substitution.
 """
-from typing import Mapping, Sequence, Union
+from typing import Mapping, Sequence, Union, Tuple
 from pathlib import Path
 
 from .urls import URL
 
-def parse_template(t : str) -> (Sequence[str], Sequence[URL]):
+def parse_template(t : str) -> Tuple[Sequence[str], Sequence[URL]]:
     # Return a parsed form of the template string
     # as a sequence of strings, in-between which 
     # the URL-s should be inserted.
@@ -63,9 +63,8 @@ class Template:
 class TemplateFile(Template):
     # Class encapsulating a file to be templated.
     def __init__(self, f : Union[str, Path]):
-        self.f = f
-        with open(f, encoding='utf-8') as f:
-            Template.__init__(self, f.read())
+        self.f = Path(f)
+        super().__init__(self.f.read_text(encoding='utf-8'))
 
     def write(self, out : Union[str, Path], cache : Mapping[URL, Path]) -> None:
         # Over-write the input file with the mapped result.

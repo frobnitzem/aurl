@@ -112,11 +112,12 @@ class Mirror:
             return None
 
         out = self.encode(url)
-        if not out.exists():
-            _logger.info("No local copy of %s exists, attempting fetch.", url)
-            async with ResourceContext(self.cq) as r:
-                out = await lookup_or_fetch(url, self.hostname, out)
-        return out
+        if out.exists():
+            return out
+
+        _logger.info("No local copy of %s exists, attempting fetch.", url)
+        async with ResourceContext(self.cq) as r:
+            return await lookup_or_fetch(url, self.hostname, out)
 
     def to_url(self, fname : Path) -> str:
         """Returns a URL representation of a local path.

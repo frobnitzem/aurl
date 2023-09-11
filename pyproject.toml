@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aurl"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 authors = ["David M. Rogers <predictivestatmech@gmail.com>"]
 license = "BSD3"
@@ -21,6 +21,8 @@ typer = "^0.9.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
+mypy = "^1.5.1"
+pytest-cov = "^4.1.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

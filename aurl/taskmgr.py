@@ -1,3 +1,4 @@
+from typing import Optional, BinaryIO
 import os
 
 import asyncio
@@ -100,7 +101,8 @@ class ResourceContext(Generic[V]):
         await self.cq.put(self.r)
         return False # continue to raise the exception
 
-async def runcmd(prog, *args, ret=False, outfile=None) -> Union[int,bytes]:
+async def runcmd(prog, *args, ret=False, outfile=None,
+                 shell_encoding='utf-8') -> Union[int,str]:
     """Run the command as an async process, passing
     stdout and stderr through to the terminal.
     
@@ -114,8 +116,8 @@ async def runcmd(prog, *args, ret=False, outfile=None) -> Union[int,bytes]:
     If outfile is a string or Path, send stdout and stderr to it
     instead of the terminal.
     """
-    stdout = None
-    stderr = None
+    stdout : Union[None, int, BinaryIO] = None
+    stderr : Union[None, int, BinaryIO] = None
     if ret:
         stdout = asyncio.subprocess.PIPE
     if outfile:
@@ -126,14 +128,14 @@ async def runcmd(prog, *args, ret=False, outfile=None) -> Union[int,bytes]:
     proc = await asyncio.create_subprocess_exec(
                     prog, *args,
                     stdout=stdout, stderr=stderr)
-    stdout, stderr = await proc.communicate()
+    stdout1, stderr1 = await proc.communicate()
     # note stdout/stderr are binary
     if outfile:
         f.close()
 
     if ret and proc.returncode == 0:
-        return stdout
-    return proc.returncode
+        return stdout1.decode(shell_encoding)
+    return proc.returncode or 1
 
 # from https://github.com/kumaraditya303/aioshutil/blob/master/aioshutil/__init__.py
 

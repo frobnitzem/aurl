@@ -1,6 +1,7 @@
 import os, logging
+from functools import cache
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union, Tuple
 
 from urllib.parse import urlparse, parse_qs, quote, unquote
 _logger = logging.getLogger(__name__)
@@ -90,9 +91,18 @@ def parse_lmod_prefix(vals : str) -> Optional[str]:
     key = 'setenv CMAKE_PREFIX_PATH '
     n = len(key)
     for line in vals.split('\n'):
-        if len(line) > n and line[:n] == key:
+        if line.startswith(key):
             assert line[-1] == ';'
-            return line[n:-1]
+            return line[len(key):-1]
+    # failing that, try the first path listed in these:
+    keys = ['setenv PATH ', 'setenv LD_LIBRARY_PATH ']
+    n = len(key)
+    for line in vals.split('\n'):
+        for key in keys:
+            n = len(key)
+            if line.startswith(key):
+                assert line[-1] == ';'
+                return str( Path(line[n:-1].split(':', 1)[0]).parent )
     return None
 
 async def download_url(base, url, chunk_size = 1024**2):
@@ -116,6 +126,29 @@ async def download_url(base, url, chunk_size = 1024**2):
             #await f.write(data)
             f.write(data)
     return True
+
+_find_spack_result : Union[bool, None, Path] = False
+async def find_spack() -> Optional[Path]:
+    global _find_spack_result
+    if not isinstance(_find_spack_result, bool):
+        return _find_spack_result
+
+    ans = os.environ.get('SPACK_ROOT', None)
+    spack : Optional[Path] = None
+    if ans is not None:
+        spack = Path(spack)/'bin'/'spack'
+        if not spack.exists():
+            spack = None
+
+    if spack is None:
+        ans = await runcmd('which', 'spack', ret=True)
+        if not isinstance(ans, int):
+            spack = Path(ans.strip())
+            if not spack.exists():
+                spack = None
+
+    _find_spack_result = spack
+    return spack
 
 async def lookup_or_fetch(url : URL, hostname : str,
                           base : Path) -> Optional[Path]:
@@ -160,14 +193,18 @@ async def lookup_or_fetch(url : URL, hostname : str,
             return None
         return base
     elif url.scheme == 'spack':
-        ret = await runcmd('spack', 'install', url.netloc, url.fragment)
+        spack = await find_spack()
+        if spack is None:
+            return None
+        print(f"running spack install {url.netloc}")
+        ret = await runcmd(spack, 'install', '--add', url.netloc)
         if ret != 0:
             return None
-        ans = await runcmd('spack', 'find', '--format', '{prefix}',
-                            url.netloc, url.fragment, ret=True)
+        ans = await runcmd(spack, 'find', '--format', '{prefix}',
+                           url.netloc, ret=True)
         if isinstance(ans, int):
             return None
-        return Path( ans.decode(shell_encoding).strip() ) / url.path
+        return Path( ans.strip() ) / url.path
     elif url.scheme == 'file':
         if url.netloc == hostname or url.netloc == '':
             #return '/'+url.path
@@ -182,7 +219,8 @@ async def lookup_or_fetch(url : URL, hostname : str,
         _logger.error("Unknown scheme, can't fetch: %s", url)
     return None
 
-async def lookup_local(url : URL, hostname : str) -> (bool, Optional[Path]):
+async def lookup_local(url : URL, hostname : str
+                       ) -> Tuple[bool, Optional[Path]]:
     # Note: Several of the lookups performed print
     #       error messages to stderr.  We do not
     #       capture these, but allow them to pass-through.
@@ -198,8 +236,7 @@ async def lookup_local(url : URL, hostname : str) -> (bool, Optional[Path]):
     #  * (True, None) if further lookup is needed
     #  * (False, None) if lookup is impossible
     # 
-    shell_encoding = 'utf-8'
-    def success(ans : Optional[Path]) -> (bool, Optional[Path]):
+    def success(ans : Optional[Path]) -> Tuple[bool, Optional[Path]]:
         if ans is None:
             return (True, None)
         return (True, ans)
@@ -215,23 +252,25 @@ async def lookup_local(url : URL, hostname : str) -> (bool, Optional[Path]):
         ans = await runcmd('which', url.netloc, ret=True)
         if isinstance(ans, int):
             return fail
-        return success( Path(ans.decode(shell_encoding).strip()) )
+        return success( Path(ans.strip()) )
     elif url.scheme == 'spack':
-        ans = await runcmd('spack', 'find', '--format', '{prefix}',
-                                url.netloc, url.fragment, ret=True)
-        if isinstance(ans, int):
+        spack = await find_spack()
+        if spack is None:
             return fail
-        return success( Path(ans.decode(shell_encoding).strip())/url.path )
+        ans = await runcmd(spack, 'find', '--format', '{prefix}',
+                           url.netloc, url.fragment, ret=True)
+        if isinstance(ans, int):
+            return success(None)
+        return success( Path(ans.strip())/url.path )
     elif url.scheme == 'module':
-        try:
-            lmod = os.environ['LMOD_CMD']
-        except KeyError:
+        lmod = os.environ.get('LMOD_CMD', None)
+        if lmod is None:
             return fail
         ans = await runcmd(lmod, "csh", "load", url.netloc, ret=True)
         if isinstance(ans, int):
             return fail
 
-        prefix = parse_lmod_prefix(ans.decode(shell_encoding))
+        prefix = parse_lmod_prefix(ans)
         if prefix is None:
             return fail
         return success( Path(prefix)/url.path )
