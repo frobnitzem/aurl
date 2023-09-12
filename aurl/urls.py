@@ -70,6 +70,13 @@ class URL:
         return hash(repr(self))
     def __eq__(a, b):
         return repr(a) == repr(b)
+    def fullpath(self):
+        if self.scheme == 'file':
+            return self.path
+        s = self.netloc
+        if len(self.path) > 0:
+            s += '/' + self.path
+        return s
     def validate(url):
         absent = lambda x: len(getattr(url, x)) == 0
         # netloc, path, query, fragment
@@ -127,28 +134,51 @@ async def download_url(base, url, chunk_size = 1024**2):
             f.write(data)
     return True
 
-_find_spack_result : Union[bool, None, Path] = False
-async def find_spack() -> Optional[Path]:
-    global _find_spack_result
-    if not isinstance(_find_spack_result, bool):
-        return _find_spack_result
+# https://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
+def which(program : str) -> Optional[str]:
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
-    ans = os.environ.get('SPACK_ROOT', None)
-    spack : Optional[Path] = None
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ.get("PATH", "").split(os.pathsep):
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    return None
+
+@cache
+def find_spack() -> Optional[Path]:
+    def has_spack(s : Optional[str], suffix : Optional[str] = None
+                  ) -> Optional[Path]:
+        if s is None:
+            return None
+        base = Path(s)
+        if suffix is not None:
+            base = base / suffix
+
+        spack = base / 'bin' / 'spack'
+        if spack.exists():
+            return spack
+        return None
+
+    spack = has_spack(os.environ.get('SPACK_MANAGER', None), 'spack')
+    if spack:
+        return spack
+
+    spack = has_spack(os.environ.get('SPACK_ROOT', None))
+    if spack:
+        return spack
+
+    ans = which('spack')
     if ans is not None:
-        spack = Path(spack)/'bin'/'spack'
-        if not spack.exists():
-            spack = None
+        return Path(ans)
 
-    if spack is None:
-        ans = await runcmd('which', 'spack', ret=True)
-        if not isinstance(ans, int):
-            spack = Path(ans.strip())
-            if not spack.exists():
-                spack = None
-
-    _find_spack_result = spack
-    return spack
+    return None
 
 async def lookup_or_fetch(url : URL, hostname : str,
                           base : Path) -> Optional[Path]:
@@ -193,15 +223,15 @@ async def lookup_or_fetch(url : URL, hostname : str,
             return None
         return base
     elif url.scheme == 'spack':
-        spack = await find_spack()
+        spack = find_spack()
         if spack is None:
             return None
-        print(f"running spack install {url.netloc}")
-        ret = await runcmd(spack, 'install', '--add', url.netloc)
+
+        ret = await runcmd(spack, 'install', '-y', url.fullpath())
         if ret != 0:
             return None
         ans = await runcmd(spack, 'find', '--format', '{prefix}',
-                           url.netloc, ret=True)
+                           url.fullpath(), ret=True)
         if isinstance(ans, int):
             return None
         return Path( ans.strip() ) / url.path
@@ -254,11 +284,11 @@ async def lookup_local(url : URL, hostname : str
             return fail
         return success( Path(ans.strip()) )
     elif url.scheme == 'spack':
-        spack = await find_spack()
+        spack = find_spack()
         if spack is None:
             return fail
         ans = await runcmd(spack, 'find', '--format', '{prefix}',
-                           url.netloc, url.fragment, ret=True)
+                           url.fullpath(), ret=True)
         if isinstance(ans, int):
             return success(None)
         return success( Path(ans.strip())/url.path )
@@ -266,7 +296,7 @@ async def lookup_local(url : URL, hostname : str
         lmod = os.environ.get('LMOD_CMD', None)
         if lmod is None:
             return fail
-        ans = await runcmd(lmod, "csh", "load", url.netloc, ret=True)
+        ans = await runcmd(lmod, "csh", "load", url.fullpath(), ret=True)
         if isinstance(ans, int):
             return fail
 

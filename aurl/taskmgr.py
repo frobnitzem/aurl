@@ -135,7 +135,10 @@ async def runcmd(prog, *args, ret=False, outfile=None,
 
     if ret and proc.returncode == 0:
         return stdout1.decode(shell_encoding)
-    return proc.returncode or 1
+    code = 1
+    if proc.returncode is not None:
+        code = proc.returncode
+    return code
 
 # from https://github.com/kumaraditya303/aioshutil/blob/master/aioshutil/__init__.py
 

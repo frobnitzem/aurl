@@ -30,7 +30,7 @@ def get(urls : List[str] = typer.Argument(..., help="urls to download"),
 
     M = Mirror( Path() )
     urls1 = [URL(u) for u in urls]
-    ok, paths = arun(fetch_all(M, urls1))
+    ok, paths = arun(fetch_all(M, urls1, verb=True))
     if not ok:
         print("Unable to fetch all paths.")
         typer.Exit(1)

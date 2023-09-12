@@ -54,7 +54,7 @@ def subst(templates  : List[str] = typer.Argument(..., help="File(s) to substitu
         return 0
 
     M = Mirror( mirror )
-    ok, lookup = arun(fetch_all(M, urls))
+    ok, lookup = arun(fetch_all(M, urls, verb=True))
     if not ok:
         print("Unable to substitute.")
         return 1
