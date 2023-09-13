@@ -52,10 +52,7 @@ Mirror provides the async functions `fetch` and `fetch_all`:
     urls = set(tf.uris)
 
     M = Mirror( Path() )
-    lookup = arun(fetch_all(M, urls))
-    if lookup is None:
-        print("Unable to substitute.")
-        return 1
+    lookup = arun(M.fetch_all(urls))
     tf.write(out, lookup)
 
 The `Mirror` class also has `encode`, and `decode`, which translate

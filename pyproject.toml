@@ -1,13 +1,14 @@
 [tool.poetry]
 name = "aurl"
 version = "1.0.0"
-description = ""
+description = "A package for maintaining a download mirror / cache and splicing URLs into file templates."
 authors = ["David M. Rogers <predictivestatmech@gmail.com>"]
 license = "BSD3"
 readme = "README.md"
 repository = "https://github.com/frobnitzem/aurl"
 classifiers = [
-    "Development Status :: 4 - Beta"
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python"
 ]
 
 [tool.poetry.scripts]
