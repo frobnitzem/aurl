@@ -1,7 +1,11 @@
+[![CI](https://github.com/frobnitzem/aurl/actions/workflows/python-package.yml/badge.svg)](https://github.com/frobnitzem/aurl/actions)
+[![Coverage](https://codecov.io/github/frobnitzem/aurl/branch/main/graph/badge.svg)](https://app.codecov.io/gh/frobnitzem/aurl)
+
 aurl
 ====
 
-A package for splicing URLs into file templates.
+A package for maintaining a download mirror / cache
+and splicing URLs into file templates.
 
 This package provides two commands, get:
 
@@ -14,15 +18,16 @@ This package provides two commands, get:
 
 and subst:
 
-    Usage: subst [OPTIONS] FNAME
+    Usage: subst [OPTIONS] TEMPLATES...
 
       Fetch and substitute URLs into a template.
 
     Arguments:
-      FNAME  File name to substitute.  [required]
+      TEMPLATES...  File(s) to substitute.  [required]
 
     Options:
-      --results                       list required results
+      --results / --no-results        Don't substitute, but list required results.
+                                      [default: no-results]
 
 
 ## Template Format
@@ -39,9 +44,9 @@ The [[tests/template.rc.tpl]] file demonstrates:
 
 ## Python API
 
-Examining the source of `subst` reveals a `TemplateFile`
-and `Mirror` classes, along with the async
-function, `fetch_all`:
+Examining the source of `subst` reveals a `TemplateFile` and `Mirror` classes.
+The `TemplateFile` class parses and prints templates.
+Mirror provides the async functions `fetch` and `fetch_all`:
 
     tf = TemplateFile(fname)
     urls = set(tf.uris)
@@ -53,8 +58,5 @@ function, `fetch_all`:
         return 1
     tf.write(out, lookup)
 
-The `Mirror` class has an `async get(url : URL)` function,
-as well as `encode`, and `decode`, which translate
-URLs to/from fille paths inside its root.
-
-The `TemplateFile` class parses and prints templates.
+The `Mirror` class also has `encode`, and `decode`, which translate
+URLs to/from fille paths inside the mirror's root path.

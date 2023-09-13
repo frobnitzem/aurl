@@ -2,8 +2,7 @@ from typing import Optional, BinaryIO
 import os
 
 import asyncio
-from functools import partial, wraps
-from typing import Any, Awaitable, Callable, TypeVar, cast, Union
+from typing import Awaitable, TypeVar
 from typing import Generic, Sequence
 
 from pathlib import Path
@@ -100,60 +99,3 @@ class ResourceContext(Generic[V]):
         # or else None (on normal exit)
         await self.cq.put(self.r)
         return False # continue to raise the exception
-
-async def runcmd(prog, *args, ret=False, outfile=None,
-                 shell_encoding='utf-8') -> Union[int,str]:
-    """Run the command as an async process, passing
-    stdout and stderr through to the terminal.
-    
-    If ret is True, send stderr through, but capture stdout.
-    Also ignores outfile.
-    Check the program exit code,
-
-    - if 0, return stdout as a string
-    - if not, return the exit code
-
-    If outfile is a string or Path, send stdout and stderr to it
-    instead of the terminal.
-    """
-    stdout : Union[None, int, BinaryIO] = None
-    stderr : Union[None, int, BinaryIO] = None
-    if ret:
-        stdout = asyncio.subprocess.PIPE
-    if outfile:
-        # TODO: consider https://pypi.org/project/aiofiles/
-        f = open(outfile, 'ab')
-        stdout = f
-        stderr = f
-    proc = await asyncio.create_subprocess_exec(
-                    prog, *args,
-                    stdout=stdout, stderr=stderr)
-    stdout1, stderr1 = await proc.communicate()
-    # note stdout/stderr are binary
-    if outfile:
-        f.close()
-
-    if ret and proc.returncode == 0:
-        return stdout1.decode(shell_encoding)
-    code = 1
-    if proc.returncode is not None:
-        code = proc.returncode
-    return code
-
-# from https://github.com/kumaraditya303/aioshutil/blob/master/aioshutil/__init__.py
-
-T = TypeVar("T", bound=Callable[..., Any])
-
-def sync_to_async(func: T):
-    @wraps(func)
-    async def run_in_executor(*args, **kwargs):
-        loop = asyncio.get_event_loop()
-        pfunc = partial(func, *args, **kwargs)
-        return await loop.run_in_executor(None, pfunc)
-
-    return cast(Awaitable[T], run_in_executor)
-
-# e.g.
-# import shutil
-#aio_copy2 = sync_to_async(shutil.copy2)
-#aio_copytree = sync_to_async(shutil.copytree)

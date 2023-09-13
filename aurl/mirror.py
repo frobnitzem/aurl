@@ -1,11 +1,14 @@
+from typing import Optional, Union, Dict
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Optional, Union
 import socket
 import logging
 _logger = logging.getLogger(__name__)
 
-from .urls import URL, lookup_or_fetch
-from .taskmgr import ResourceQueue, ResourceContext
+from .exceptions import DownloadException
+from .urls import URL
+from .fetch import lookup_or_fetch
+from .taskmgr import ResourceQueue, ResourceContext, TaskMgr
 
 def gethostname():
     #fqdn = socket.getfqdn(socket.gethostname())
@@ -97,7 +100,7 @@ class Mirror:
             return None
         return ans
 
-    async def get(self, url : URL) -> Optional[Path]:
+    async def fetch(self, url : URL) -> Optional[Path]:
         """Handles url downloads.
 
         Args:
@@ -118,6 +121,29 @@ class Mirror:
         _logger.info("No local copy of %s exists, attempting fetch.", url)
         async with ResourceContext(self.cq) as r:
             return await lookup_or_fetch(url, self.hostname, out)
+
+    async def fetch_all(self, urls : Iterable[URL]) -> Dict[URL, Path]:
+        """ Fetch all urls from the given mirror.
+            Returns a mapping from url to the path where it can
+            be accessed locally.
+
+            raises DownloadException on error.
+        """
+        location : Dict[URL, Path] = {}
+        errors = []
+        with TaskMgr() as T:
+            for url in set(urls):
+                T.start(self.fetch(url), url)
+            for t, url in T:
+                try:
+                    location[url] = await t
+                except DownloadException as e:
+                    errors.append(str(e))
+        if len(errors) > 0:
+            raise DownloadException("Download errors:\n    "
+                                    + "\n\n-   ".join(errors))
+
+        return location
 
     def to_url(self, fname : Path) -> str:
         """Returns a URL representation of a local path.

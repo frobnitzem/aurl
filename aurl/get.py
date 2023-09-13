@@ -12,28 +12,30 @@ import logging
 _logger = logging.getLogger(__name__)
 
 import typer
+import json
 
 from .mirror import Mirror
 from .urls import URL
-from .fetch import fetch_all, arun
+from . import arun
 
 app = typer.Typer()
 
 @app.command(help="Download a list of URLs.")
-def get(urls : List[str] = typer.Argument(..., help="urls to download"),
-          v  : bool = typer.Option(False, "-v", help="show info-level logs"),
-          vv : bool = typer.Option(False, "-vv", help="show debug-level logs")):
+def get(urls   : List[str] = typer.Argument(..., help="urls to download"),
+        mirror : Optional[Path] = typer.Option(None, help="directory holding downloaded files"),
+          v    : bool = typer.Option(False, "-v", help="show info-level logs"),
+          vv   : bool = typer.Option(False, "-vv", help="show debug-level logs")):
     if vv:
         logging.basicConfig(level=logging.DEBUG)
     elif v:
         logging.basicConfig(level=logging.INFO)
+    if mirror is None:
+        mirror = Path()
 
-    M = Mirror( Path() )
+    M = Mirror( mirror )
     urls1 = [URL(u) for u in urls]
-    ok, paths = arun(fetch_all(M, urls1, verb=True))
-    if not ok:
-        print("Unable to fetch all paths.")
-        typer.Exit(1)
+    paths = arun(M.fetch_all(urls1))
+    print(json.dumps(dict((k.s, str(v)) for k, v in paths.items()), indent=4))
 
 if __name__=="__main__":
     get()
