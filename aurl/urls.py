@@ -1,6 +1,6 @@
-import os, logging
+from typing import Optional, Union
 from pathlib import Path
-from typing import Optional
+import os, logging
 
 from urllib.parse import urlparse, parse_qs, quote, unquote
 
@@ -19,7 +19,11 @@ class URL:
     * fragment : str
 
     """
-    def __init__(self, s : str, validate=True):
+    def __init__(self, s1 : Union[str, 'URL'], validate=True):
+        if isinstance(s1, str):
+            s = s1
+        else:
+            s = s.s # type: ignore[attr-defined]
         ans = urlparse(s, scheme='', allow_fragments=True)
         
         # store metadata
