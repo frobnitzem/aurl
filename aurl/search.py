@@ -128,7 +128,7 @@ async def lookup_local(url : URL, hostname : str) -> Optional[Path]:
             _logger.info("Spack find %s failed with err: %s, output: %s",
                          url.fullpath(), err, out)
             return None
-        return Path(out.strip())
+        return Path(out.strip().split("\n")[-1])
     elif url.scheme == "module":
         lmod = find_lmod()
         if lmod is None:

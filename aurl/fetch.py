@@ -91,7 +91,7 @@ async def lookup_or_fetch(url : URL, hostname : str, base : Path) -> Path:
         if ret != 0:
             raise DownloadException(
                     f"spack find {url.fullpath()} returned error: {err}")
-        return Path( out.strip() )
+        return Path( out.strip().split("\n")[-1] )
     elif url.scheme == "file":
         if url.netloc == hostname or len(url.netloc) == 0:
             #return '/'+url.path

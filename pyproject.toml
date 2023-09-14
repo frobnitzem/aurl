@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aurl"
-version = "1.0.0"
+version = "1.0.1"
 description = "A package for maintaining a download mirror / cache and splicing URLs into file templates."
 authors = ["David M. Rogers <predictivestatmech@gmail.com>"]
 license = "BSD3"
