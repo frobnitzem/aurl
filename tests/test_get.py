@@ -1,7 +1,7 @@
 from pathlib import Path
 import json
 
-import pytest
+import pytest # type: ignore[import]
 from typer.testing import CliRunner
 
 from aurl.get import app as get

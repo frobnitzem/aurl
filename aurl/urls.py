@@ -27,19 +27,19 @@ class URL:
         ans = urlparse(s, scheme='', allow_fragments=True)
         
         # store metadata
-        if ans.query != '':
+        if ans.query != "":
             self.meta = f"?{ans.query}"
         else:
-            self.meta = ''
-        if ans.fragment != '':
+            self.meta = ""
+        if ans.fragment != "":
             self.meta = f"{self.meta}#{ans.fragment}"
 
         self.scheme = unquote(ans.scheme)
         self.netloc = unquote(ans.netloc)
-        assert '%2F' not in ans.path, "Invalid path."
+        assert "%2F" not in ans.path, "Invalid path."
         self.path = unquote(ans.path)
-        if self.scheme != 'file': # remove leading '/' in paths
-            if len(self.path) > 0 and self.path[0] == '/':
+        if self.scheme != "file": # remove leading '/' in paths
+            if self.path.startswith("/"):
                 self.path = self.path[1:]
         if len(ans.query) > 0:
             self.query = parse_qs(ans.query,
@@ -58,7 +58,7 @@ class URL:
             raise AssertionError(f"Invalid URL format: {self.s} -- {e}")
 
     def with_scheme(self, scheme):
-        return urlparse(self.s, scheme='', allow_fragments=True) \
+        return urlparse(self.s, scheme="", allow_fragments=True) \
                   . _replace(scheme=scheme) \
                   . geturl()
 
@@ -69,7 +69,7 @@ class URL:
     def __eq__(a, b):
         return repr(a) == repr(b)
     def fullpath(self):
-        if self.scheme == 'file':
+        if self.scheme == "file":
             return self.path
         s = self.netloc
         if len(self.path) > 0:
@@ -78,14 +78,13 @@ class URL:
     def validate(url):
         absent = lambda x: len(getattr(url, x)) == 0
         # netloc, path, query, fragment
-        if url.scheme in ['file', 'module', 'spack']:
-            assert absent('query') and absent('fragment')
-        elif url.scheme in ['git', 'result']:
-            assert absent('query')
-        elif url.scheme == 'https' or url.scheme == 'http':
-            assert absent('fragment')
-        elif url.scheme == 'bin':
-            assert absent('query') and absent('fragment') and absent('path')
+        if url.scheme in ["file", "git", "git+file", "git+http",
+                          "git+https", "git+ssh"]:
+            assert absent("query") and absent("fragment")
+        elif url.scheme in ["result"]:
+            assert absent("query")
+        elif url.scheme == "https" or url.scheme == "http":
+            assert absent("fragment")
         else:
-            raise AssertionError(f"Unknown URL scheme: url.scheme")
+            raise AssertionError(f"Unknown URL scheme: {url.scheme}")
 

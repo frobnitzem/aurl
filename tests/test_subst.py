@@ -1,7 +1,7 @@
 from pathlib import Path
 import json
 
-import pytest
+import pytest # type: ignore[import]
 from typer.testing import CliRunner
 
 from aurl.subst import app as subst
@@ -9,17 +9,17 @@ from aurl.subst import app as subst
 tpl = """
 This is a test template
 
-step1 = ${{ git://github.com/frobnitzem/aurl }}
+step1 = ${{ git+https://github.com/frobnitzem/aurl }}
 root  = ${{ file:///usr/bin/last }}
-github = ${{ git://github.com/frobnitzem/aiowire }}
+github = ${{ git+https://github.com/frobnitzem/aiowire }}
 """
 
 ans = """
 This is a test template
 
-step1 = {mirror}/git/github.com/frobnitzem/aurl
+step1 = {mirror}/git+https/github.com/frobnitzem/aurl
 root  = /usr/bin/last
-github = {mirror}/git/github.com/frobnitzem/aiowire
+github = {mirror}/git+https/github.com/frobnitzem/aiowire
 """
 
 runner = CliRunner()

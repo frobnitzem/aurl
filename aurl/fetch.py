@@ -9,7 +9,7 @@ import aiohttp
 
 from .exceptions import DownloadException
 from .urls import URL
-from .search import which, find_spack, lookup_local
+from .search import which, lookup_local
 from .runcmd import runcmd
 
 async def download_url(outfile : Union[str, Path],
@@ -52,7 +52,7 @@ async def lookup_or_fetch(url : URL, hostname : str, base : Path) -> Path:
     # Handles the following URL types:
     #    - (http|https)://* - download with aiohttp
     #    - git://* - run git clone
-    #    - spack://* - run spack install
+    #    - git+(http|https|ssh)://* - run git clone
     #    - file://* TODO - check multiple filesystems
     #    - result://* TODO - escalate to higher-level servers
     #
@@ -65,33 +65,20 @@ async def lookup_or_fetch(url : URL, hostname : str, base : Path) -> Path:
     _logger.info("Attempting to download %s", url)
     if url.scheme == "http" or url.scheme == "https":
         return await download_url(base, url.s)
-    elif url.scheme == "git":
+    elif url.scheme.startswith("git"):
         base.parent.mkdir(exist_ok=True, parents=True)
-        #gurl = f"git@{url.netloc}:{url.path}"
-        gurl = f"https://{url.netloc}/{url.path}.git"
-        if url.fragment != '':
+        gurl = url.s
+        if gurl.startswith("git+"):
+            gurl = gurl[4:]
+        if '@' in url.s:
+            gurl, commit = gurl.split('@', 1)
             ret, out, err = await runcmd("git", "clone", "--branch",
-                                         url.fragment, gurl, str(base))
+                                         commit, gurl, str(base))
         else:
             ret, out, err = await runcmd("git", "clone", gurl, str(base))
         if ret != 0:
             raise DownloadException(err)
         return base
-    elif url.scheme == "spack":
-        spack = find_spack()
-        if spack is None:
-            raise DownloadException("spack not found")
-
-        ret, out, err = await runcmd(spack, "install", "-y", url.fullpath())
-        if ret != 0:
-            raise DownloadException(
-                    f"spack install -y {url.fullpath()} returned error: {err}")
-        ret, out, err = await runcmd(spack, 'find', '--format', '{prefix}',
-                                     url.fullpath())
-        if ret != 0:
-            raise DownloadException(
-                    f"spack find {url.fullpath()} returned error: {err}")
-        return Path( out.strip().split("\n")[-1] )
     elif url.scheme == "file":
         if url.netloc == hostname or len(url.netloc) == 0:
             #return '/'+url.path
@@ -107,4 +94,3 @@ async def lookup_or_fetch(url : URL, hostname : str, base : Path) -> Path:
 
     _logger.error("Unknown scheme, can't fetch: %s", url)
     raise DownloadException("Unknown scheme, can't fetch: %s"%url)
-
