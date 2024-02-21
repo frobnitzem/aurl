@@ -64,6 +64,8 @@ class URL:
 
     def __repr__(self):
         return f"URL('{self.s}')"
+    def __str__(self):
+        return self.s
     def __hash__(self):
         return hash(repr(self))
     def __eq__(a, b):
