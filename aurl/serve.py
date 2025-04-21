@@ -22,8 +22,8 @@ except ImportError: # These stubs will allow this module to load, but not work.
         def head(self, *args, **kws):
             # empty decorator
             return lambda fn: fn
-    app = App()
-    class HTTPException(Exception):
+    app = App() # type: ignore[assignment]
+    class HTTPException(Exception): # type: ignore[assignment, no-redef]
         def __init__(self, status_code, detail):
             super().__init__(detail)
 
