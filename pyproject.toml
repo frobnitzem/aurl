@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aurl"
-version = "2.1.0"
+version = "2.2.0"
 description = "A package for maintaining a download mirror / cache and splicing URLs into file templates."
 authors = ["David M. Rogers <predictivestatmech@gmail.com>"]
 license = "BSD3"
@@ -19,7 +19,8 @@ subst = 'aurl.subst:app'
 [tool.poetry.dependencies]
 python = ">=3.9"
 aiohttp = "^3.8.5"
-typer = "^0.9.0"
+aiofiles="^24.1.0"
+typer = ">=0.9,<1.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
