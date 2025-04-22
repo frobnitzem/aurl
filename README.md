@@ -57,3 +57,26 @@ Mirror provides the async functions `fetch` and `fetch_all`:
 
 The `Mirror` class also has `encode`, and `decode`, which translate
 URLs to/from fille paths inside the mirror's root path.
+
+## File server
+
+This package includes a simple file server.
+To use it, follow [certified's docs](https://certified.readthedocs.io/en/latest/tutorials/) to launch `aurl.serve:app`.
+
+    certified init --host dtn.my.org --domain my.org 'My DTN Service'
+    certified serve aurl.serve:app https://0.0.0.0:4433
+
+Your client can now access this file server using
+
+    # client configuration
+    pip install certified
+    certified init 'My client'
+    certified get-ident # ~> (send to certified introduce on server side to get intro.json)
+    certified add-intro intro.json
+    certified add-service https://dtn.my.org:4433 intro.json
+
+    # GET using certified's message util (serial)
+    message https://dtn.my.org:4433/file1.h5
+
+    # GET using aurl's get tool (parallel)
+    get https://dtn.my.org:4433/file1.h5 https://dtn.my.org:4433/file2.zarr
