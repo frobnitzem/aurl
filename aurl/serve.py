@@ -14,6 +14,12 @@ try: # fastapi is optional
     from fastapi.responses import FileResponse
     app = FastAPI()
 
+    try: # improved logging is optional
+        from certified.formatter import log_request # type: ignore[import-not-found]
+        app.middleware("http")(log_request)
+    except ImportError:
+        pass
+
 except ImportError: # These stubs will allow this module to load, but not work.
     class App(): # dummy app
         def get(self, *args, **kws):

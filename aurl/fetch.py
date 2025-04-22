@@ -2,6 +2,7 @@ from typing import Optional, Dict, Tuple, Union
 import logging
 _logger = logging.getLogger(__name__)
 import time
+from urllib.parse import urlsplit, urlunsplit
 
 from pathlib import Path
 import asyncio
@@ -16,15 +17,17 @@ from .runcmd import runcmd
 
 Pstr = Union[str, Path]
 
+class UnsupportedOperation(Exception):
+    pass
+
 async def download_part(session: aiohttp.ClientSession, url: str, dest: Pstr,
-                        start: int, end: int, chunk_size: int) -> bool:
+                        start: int, end: int, chunk_size: int):
     """ Download part of this URL using a Range header request
         between start and end (slice-like, 0-indexed, non-inclusive).
 
         Write the result to the destination file at the starting offset.
 
-        Returns True if successful, and False if the download should
-        be re-tried in serial.
+        Raises UnsupportedOperation if the download should be re-tried in serial.
 
         Raises DownloadException on other responses.
     """
@@ -38,11 +41,10 @@ async def download_part(session: aiohttp.ClientSession, url: str, dest: Pstr,
                     await f.write(chunk)
         elif response.status in [200, 501]: # ignored / not implemented
             _logger.info("%s: GET with Range failed with %d", url, response.status)
-            return False
+            raise UnsupportedOperation()
         else:
             raise DownloadException("Download error on %s (%d-%d): received status %d"%
                                     (url, start, end, response.status))
-    return True
 
 async def download_full(session: aiohttp.ClientSession, url: str, dest: Pstr,
                         chunk_size: int):
@@ -62,7 +64,7 @@ async def download_full(session: aiohttp.ClientSession, url: str, dest: Pstr,
 
 # try 1024**2 or 8192...
 async def download_url(outfile: Pstr,
-                       url: Union[str, URL],
+                       url1: Union[str, URL],
                        chunk_size: int = 1024**2,
                        max_connections: int = 4) -> int:
     """ Download the url to the given output file.
@@ -73,21 +75,32 @@ async def download_url(outfile: Pstr,
     """
     assert chunk_size > 0 and max_connections > 0
 
+    # Rewrite the URL so that the scheme and netloc appear in the base.
+    (scheme, netloc, path, query, fragment) = urlsplit(str(url1))
+    base = urlunsplit((scheme, netloc,"","",""))
+    url  = urlunsplit(("","",path,query,fragment))
+
+    try:
+        from certified import Certified
+        mk_session = Certified().ClientSession
+    except ImportError:
+        mk_session = aiohttp.ClientSession
+
     file_size: Optional[int] = None
-    async with aiohttp.ClientSession() as session:
-        async with session.head(str(url), allow_redirects=True) as response:
+    async with mk_session(base) as session:
+        async with session.head(url, allow_redirects=True) as response:
             if response.status == 200:
                 file_size = int(response.headers.get('Content-Length', 0))
 
         if file_size is None:
-            async with session.get(str(url), allow_redirects=True) as response:
+            async with session.get(url, allow_redirects=True) as response:
                 if response.status != 200:
                     raise DownloadException("%s: Error getting size (%d): %s"%(
-                                            url, response.status, response.text()))
+                                            url1, response.status, response.text()))
                 file_size = int(response.headers.get('Content-Length', 0))
 
         if file_size == 0:
-            raise DownloadException(f"{url}: File size is zero or not available.")
+            raise DownloadException(f"{url1}: File size is zero or not available.")
 
         dest = Path(outfile)
 
@@ -109,13 +122,22 @@ async def download_url(outfile: Pstr,
             end = start + data_per_task
             if i == connections-1:
                 end = file_size  # Ensure the last part goes to the end
-            task = asyncio.create_task(download_part(session, str(url), dest,
+            task = asyncio.create_task(download_part(session, url, dest,
                                                      start, end, chunk_size))
             tasks.append(task)
 
-        ret = await asyncio.gather(*tasks)
-        if not all(ret): # need a serial download
-            await download_full(session, str(url), dest, chunk_size)
+        try:
+            await asyncio.gather(*tasks)
+        except UnsupportedOperation:
+            # run the complicated cleanup from partially complete gather.
+            [t.cancel() for t in tasks if not t.done()]
+            for t in tasks:
+                if not t.done():
+                    try:
+                        await t
+                    except (asyncio.CancelledError, UnsupportedOperation):
+                        pass
+            await download_full(session, url, dest, chunk_size)
     return file_size
 
 async def lookup_or_fetch(url : URL, hostname : str, base : Path) -> Path:
