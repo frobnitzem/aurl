@@ -84,7 +84,7 @@ async def download_url(outfile: Pstr,
         from certified import Certified
         mk_session = Certified().ClientSession
     except ImportError:
-        mk_session = aiohttp.ClientSession
+        mk_session = aiohttp.ClientSession # type: ignore[assignment]
 
     file_size: Optional[int] = None
     async with mk_session(base) as session:
