@@ -81,7 +81,7 @@ async def download_url(outfile: Pstr,
     url  = urlunsplit(("","",path,query,fragment))
 
     try:
-        from certified import Certified
+        from certified import Certified # type: ignore[import-not-found]
         mk_session = Certified().ClientSession
     except ImportError:
         mk_session = aiohttp.ClientSession # type: ignore[assignment]
