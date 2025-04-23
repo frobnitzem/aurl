@@ -1,8 +1,8 @@
-[tool.poetry]
+[project]
 name = "aurl"
 version = "2.2.0"
 description = "A package for maintaining a download mirror / cache and splicing URLs into file templates."
-authors = ["David M. Rogers <predictivestatmech@gmail.com>"]
+authors = [ {name="David M. Rogers", email="predictivestatmech@gmail.com>"} ]
 license = "BSD-3-Clause"
 readme = "README.md"
 classifiers = [
@@ -10,17 +10,20 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Framework :: AsyncIO"
 ]
+requires-python = ">=3.9,<4.0"
+
+dependencies = [
+    "aiohttp>=3.8.5,<4.0",
+    "aiofiles>=24.1.0,<25.0",
+    "typer>=0.9,<1.0",
+]
+
+[project.urls]
 repository = "https://github.com/frobnitzem/aurl"
 
 [project.scripts]
 get   = 'aurl.get:app'
 subst = 'aurl.subst:app'
-
-[project.dependencies]
-python = ">=3.9"
-aiohttp = "^3.8.5"
-aiofiles="^24.1.0"
-typer = ">=0.9,<1.0"
 
 [project.optional-dependencies]
 certified = [ "certified>=0.10,<2.0" ]
@@ -35,5 +38,5 @@ pytest-cov = "^4.1.0"
 types-aiofiles = "*"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.0"]
 build-backend = "poetry.core.masonry.api"
