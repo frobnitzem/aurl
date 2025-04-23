@@ -10,8 +10,8 @@ from typing import Union
 from pathlib import Path, PurePath
 
 try: # fastapi is optional
-    from fastapi import FastAPI, HTTPException, Response
-    from fastapi.responses import FileResponse
+    from fastapi import FastAPI, HTTPException, Response # type: ignore[import-not-found]
+    from fastapi.responses import FileResponse # type: ignore[import-not-found]
     app = FastAPI()
 
     try: # improved logging is optional
@@ -84,8 +84,3 @@ async def head_file(filename: str):
         "content-disposition": f"attachment; filename={p.name}",
     }
     return Response(status_code=200, headers=hdr)
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=31173)
-    sys.exit()
