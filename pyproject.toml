@@ -1,6 +1,7 @@
 [project]
-name = "aurl"
-version = "2.2.0"
+#name = "aurl"
+name = "aurl-aurl"
+version = "2.2.1"
 description = "A package for maintaining a download mirror / cache and splicing URLs into file templates."
 authors = [ {name="David M. Rogers", email="predictivestatmech@gmail.com>"} ]
 license = "BSD-3-Clause"
@@ -16,6 +17,11 @@ dependencies = [
     "aiohttp>=3.8.5,<4.0",
     "aiofiles>=24.1.0,<25.0",
     "typer>=0.9,<1.0",
+]
+
+[tool.poetry]
+packages = [
+    { include = "aurl" }
 ]
 
 [project.urls]

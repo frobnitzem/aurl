@@ -1,5 +1,8 @@
-from importlib.metadata import version
-__version__ = version('aurl')
+from importlib.metadata import version, PackageNotFoundError
+try:
+    __version__ = version('aurl-aurl')
+except PackageNotFoundError:
+    __version__ = 'dev'
 
 import asyncio
 
