@@ -6,8 +6,34 @@
 # as used by aurl's parallel download methods.
 
 import os, sys
-from typing import Union
+from typing import Union, Dict
 from pathlib import Path, PurePath
+
+from dataclasses import dataclass
+@dataclass
+class FileStat:
+    size: int
+    atime: int
+    mtime: int
+    children: Union[bool, "FileStat"]
+
+def stat_dir(path: Path, max_depth=0) -> Dict[str, FileStat]:
+    # Caution! the path is not checked to ensure
+    # it is safe to serve. (caller should do this)
+    ans = {}
+    for p in path.iterdir():
+        st = p.stat()
+        ans[p.name] = FileStat( size = int(st.st_size),
+                                atime = int(st.st_atime),
+                                mtime = int(st.st_mtime),
+                                children = False,
+                              )
+        if p.is_dir():
+            if max_depth > 0:
+                ans[p.name].children = stat_dir(p, max_depth-1)
+            else:
+                ans[p.name].children = True
+    return ans
 
 try: # fastapi is optional
     from fastapi import FastAPI, HTTPException, Response # type: ignore[import-not-found]
@@ -54,16 +80,18 @@ def safe_path(base: Path, fname: Union[Path,str]) -> Path:
     return base / rel
 
 @app.get("/{filename:path}")
-async def get_file(filename: str):
+async def get_file(filename: str, max_depth: int = 0):
     """
     Serves a file from the working directory if it exists.
     """
     file_path = safe_path(file_root, filename)
     if file_path.is_file():
         return FileResponse(file_path, filename=file_path.name)
+    elif file_path.is_dir():
+        max_depth = min(max_depth, 3) # truncate to at most 3
+        return stat_dir(file_path, max_depth)
     else:
         raise HTTPException(status_code=404, detail="File not found")
-
 
 @app.head("/{filename:path}")
 async def head_file(filename: str):
