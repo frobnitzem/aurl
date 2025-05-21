@@ -15,7 +15,7 @@ class FileStat:
     size: int
     atime: int
     mtime: int
-    children: Union[bool, "FileStat"]
+    children: Union[bool, Dict[str,"FileStat"]]
 
 def stat_dir(path: Path, max_depth=0) -> Dict[str, FileStat]:
     # Caution! the path is not checked to ensure
@@ -62,10 +62,10 @@ except ImportError: # These stubs will allow this module to load, but not work.
 file_root = Path().resolve()
 
 def safe_path(base: Path, fname: Union[Path,str]) -> Path:
-    """Take an unsafe, user-provided fname, validate it,
-    and place it relative to the base path.
+    """ Take an unsafe, user-provided fname, validate it,
+        and place it relative to the base path.
 
-    Throw an exception if the path contains ".." or is absolute.
+        Throw an exception if the path contains ".." or is absolute.
     """
 
     rel = PurePath(fname)
