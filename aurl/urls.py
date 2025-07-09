@@ -81,7 +81,7 @@ class URL:
         absent = lambda x: len(getattr(url, x)) == 0
         # netloc, path, query, fragment
         if url.scheme in ["file", "git", "git+file", "git+http",
-                          "git+https", "git+ssh"]:
+                          "git+https", "git+ssh", "ftp"]:
             assert absent("query") and absent("fragment")
         elif url.scheme in ["result"]:
             assert absent("query")

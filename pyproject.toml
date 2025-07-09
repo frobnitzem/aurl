@@ -1,7 +1,7 @@
 [project]
 #name = "aurl"
 name = "aurl-aurl"
-version = "2.4.0"
+version = "2.4.1"
 description = "A package for maintaining a download mirror / cache and splicing URLs into file templates."
 authors = [ {name="David M. Rogers", email="predictivestatmech@gmail.com>"} ]
 license = "BSD-3-Clause"
