@@ -35,7 +35,7 @@ async def get_list(url: str, M: Mirror, max_depth: int = 3,
             tree = entry.get('children', False)
             if tree:
                 if tree is True:
-                    loc = await M.fetch(f"{rel}?max_depth={max_depth}")
+                    loc = await M.fetch(URL(f"{rel}?max_depth={max_depth}"))
                     if loc is None:
                         print(f"Unable to download file listing for {rel}")
                         continue
@@ -69,4 +69,4 @@ def get_dir(url    : str = typer.Argument(..., help="directory tree root"),
     sys.exit(0)
 
 if __name__=="__main__":
-    get()
+    app()
