@@ -14,6 +14,7 @@ from .exceptions import DownloadException
 from .urls import URL
 from .search import which, lookup_local
 from .runcmd import runcmd
+from .aftp import download_ftp
 
 Pstr = Union[str, Path]
 
@@ -165,7 +166,12 @@ async def lookup_or_fetch(url : URL, hostname : str, base : Path) -> Path:
     if ans is not None:
         return ans
     _logger.info("Attempting to download %s", url)
-    if url.scheme == "http" or url.scheme == "https":
+    if url.scheme == "ftp":
+        err = await download_ftp(url, base)
+        if err:
+            raise DownloadException(err)
+        return base
+    elif url.scheme == "http" or url.scheme == "https":
         t0 = time.time()
         sz = await download_url(base, url.s)
         dt = time.time() - t0
