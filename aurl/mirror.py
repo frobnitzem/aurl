@@ -138,10 +138,10 @@ class Mirror:
                 try:
                     location[url] = await t
                 except DownloadException as e:
-                    errors.append(str(e))
+                    errors.append(str(url)+": "+str(e))
         if len(errors) > 0:
-            raise DownloadException("Download errors:\n    "
-                                    + "\n\n-   ".join(errors))
+            raise DownloadException("Download errors:\n  - "
+                                    + "\n  - ".join(errors))
 
         return location
 

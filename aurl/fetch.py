@@ -54,14 +54,13 @@ async def download_full(session: aiohttp.ClientSession, url: str, dest: Pstr,
         Raises DownloadException on error.
     """
     async with session.get(url, allow_redirects=True) as response:
-        if response.status == 200:
-            async with aiofiles.open(dest, mode="r+b") as f:
-                async for chunk in response.content.iter_chunked(chunk_size):
-                    await f.seek(0)
-                    await f.write(chunk)
-        else:
+        if response.status != 200:
             raise DownloadException("Download error on %s: received status %d"%
                                     (url, response.status))
+        async with aiofiles.open(dest, mode="wb") as f:
+            async for chunk in response.content.iter_chunked(chunk_size):
+                await f.write(chunk)
+            return await f.tell()
 
 # try 1024**2 or 8192...
 async def download_url(outfile: Pstr,
@@ -75,6 +74,8 @@ async def download_url(outfile: Pstr,
         Returns the downloaded file size (in bytes) on success.
     """
     assert chunk_size > 0 and max_connections > 0
+    dest = Path(outfile)
+    dest.parent.mkdir(exist_ok=True, parents=True)
 
     # Rewrite the URL so that the scheme and netloc appear in the base.
     (scheme, netloc, path, query, fragment) = urlsplit(str(url1))
@@ -91,21 +92,26 @@ async def download_url(outfile: Pstr,
     async with mk_session(base) as session:
         async with session.head(url, allow_redirects=True) as response:
             if response.status == 200:
-                file_size = int(response.headers.get('Content-Length', 0))
+                if 'Content-Length' in response.headers:
+                    file_size = int(response.headers.get('Content-Length', 0))
 
         if file_size is None:
             async with session.get(url, allow_redirects=True) as response:
                 if response.status != 200:
                     raise DownloadException("%s: Error getting size (%d): %s"%(
                                             url1, response.status, response.text()))
-                file_size = int(response.headers.get('Content-Length', 0))
+                if 'Content-Length' in response.headers:
+                    file_size = int(response.headers.get('Content-Length', 0))
+                else: # just download the file
+                    async with aiofiles.open(dest, mode="wb") as f:
+                        async for chunk in response.content.iter_chunked(chunk_size):
+                            await f.write(chunk)
+                        return await f.tell()
 
         if file_size == 0:
-            raise DownloadException(f"{url1}: File size is zero or not available.")
-
-        dest = Path(outfile)
-
-        dest.parent.mkdir(exist_ok=True, parents=True)
+            async with aiofiles.open(dest, mode="wb") as f:
+                pass
+            return 0
         # Create an empty file with the total size
         async with aiofiles.open(dest, mode="wb") as f:
             await f.seek(file_size - 1)
@@ -138,7 +144,7 @@ async def download_url(outfile: Pstr,
                         await t
                     except (asyncio.CancelledError, UnsupportedOperation):
                         pass
-            await download_full(session, url, dest, chunk_size)
+            return await download_full(session, url, dest, chunk_size)
     return file_size
 
 async def lookup_or_fetch(url : URL, hostname : str, base : Path) -> Path:
